@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import * as XLSX from "xlsx";
 
 function App() {
   const [rows, setRows] = useState([]);
 
-  const handleFileUpload = useMemo(() => (e) => {
+  const handleFileUpload = useCallback((e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -13,46 +13,42 @@ function App() {
         const workbook = XLSX.read(binaryStr, { type: "binary" });
         const [sheetName] = workbook.SheetNames;
         const worksheet = workbook.Sheets?.[sheetName];
-        const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        const filteredRows = allRows.filter((row) =>
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const filteredRows = rawRows.filter((row) =>
           row.includes("Indicar com X")
         );
         const [firstRow] = filteredRows;
-        const startIndex = firstRow
-          ? allRows.indexOf(firstRow) + 1
-          : 0;
-        const newRows = allRows.slice(startIndex);
-        const contents = [...newRows].filter((row) => row[0]);
+        const startIndex = firstRow ? rawRows.indexOf(firstRow) + 1 : 0;
+        const filteredContents = rawRows.slice(startIndex).filter((row) => row[0]);
 
-        // Transform each item inside joinedRows to the desired format
-        const joinedRows = [];
-        let tempRow = [];
-        for (let row of contents) {
+        // Transform each item inside transformedRows to the desired format
+        const transformedRows = filteredContents.reduce((acc, row) => {
           if (row[0] && row[0][0] === ".") {
-            if (tempRow.length > 0) {
-              const transformedItems = tempRow.map((item) => ({
+            if (acc.tempRow.length > 0) {
+              const transformedItems = acc.tempRow.map((item) => ({
                 id: item[2],
                 description: item[3],
                 quantity: item[5],
               }));
-              joinedRows.push(transformedItems);
-              tempRow = [];
+              acc.joinedRows.push(transformedItems);
+              acc.tempRow = [];
             }
           } else {
-            tempRow.push(row);
+            acc.tempRow.push(row);
           }
-        }
-        if (tempRow.length > 0) {
-          const transformedItems = tempRow.map((item) => ({
+          return acc;
+        }, { tempRow: [], joinedRows: [] });
+
+        if (transformedRows.tempRow.length > 0) {
+          const transformedItems = transformedRows.tempRow.map((item) => ({
             id: item[2],
             description: item[3],
             quantity: item[5],
           }));
-          joinedRows.push(transformedItems);
+          transformedRows.joinedRows.push(transformedItems);
         }
 
-        setRows(joinedRows);
-        console.log(joinedRows);
+        setRows(transformedRows.joinedRows);
       } catch (error) {
         console.error(error);
         setRows([]);
