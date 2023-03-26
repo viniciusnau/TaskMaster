@@ -24,13 +24,18 @@ function App() {
         const newRows = allRows.slice(startIndex);
         const contents = [...newRows].filter((row) => row[0]);
 
-        // Join sequence of arrays separated by arrays that start with "."
+        // Transform each item inside joinedRows to the desired format
         const joinedRows = [];
         let tempRow = [];
         for (let row of contents) {
           if (row[0] && row[0][0] === ".") {
             if (tempRow.length > 0) {
-              joinedRows.push(tempRow);
+              const transformedItems = tempRow.map((item) => ({
+                id: item[2],
+                description: item[3],
+                quantity: item[5],
+              }));
+              joinedRows.push(transformedItems);
               tempRow = [];
             }
           } else {
@@ -38,7 +43,12 @@ function App() {
           }
         }
         if (tempRow.length > 0) {
-          joinedRows.push(tempRow);
+          const transformedItems = tempRow.map((item) => ({
+            id: item[2],
+            description: item[3],
+            quantity: item[5],
+          }));
+          joinedRows.push(transformedItems);
         }
 
         setRows(joinedRows);
@@ -57,8 +67,10 @@ function App() {
       <ul>
         {rows.map((group, groupIndex) => (
           <li key={groupIndex}>
-            {group.map((row, rowIndex) => (
-              <span key={rowIndex}>{row.join(", ")}</span>
+            {group.map((item, itemIndex) => (
+              <span key={itemIndex}>
+                {`ID: ${item.id}, Description: ${item.description}, Quantity: ${item.quantity}`}
+              </span>
             ))}
           </li>
         ))}
